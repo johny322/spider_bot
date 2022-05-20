@@ -1,0 +1,30 @@
+strings = {
+    'ru': {
+        'common_default_start_message': 'Стандартное сообщение',
+        'common_empty_symbol_message': '­',
+        'common_back_button': 'Назад',
+        'common_skip_button': 'Пропустить',
+        'common_confirm_button': 'Подтвердить',
+        'common_accept_button': 'Принять',
+        'common_reject_button': 'Отклонить',
+        'admin_switch_state_to_user_button': 'В меню пользователя',
+        'user_profile_button': 'Профиль',
+        'select_room_button': 'Выбрать стол',
+        'exit_room_button': 'Покинуть стол',
+        'send_request_button': 'Отправить запрос реферу',
+        'time_left_button': 'Оставшееся время',
+        'admin_got_status_message': 'Вы получили статус администратора!',
+        'user_profile_message': 'Профиль пользователя {}',
+        'admin_change_start_message_button': 'Изменить стартовое сообщение',
+        'admin_sending_message_button': 'Сделать рассылку',
+        'admin_add_room_button': 'Добавить комнату',
+        'send_start_message_text': 'Отправьте текст нового сообщения',
+        'send_start_message_data': 'Отправьте фото, видео, документ или голосовое сообщение',
+        'new_start_message': 'Новое стартовое сообщение:\n{}',
+        'select_level': 'Выберите уровень',
+        'room_welcome_message': 'Добро пожаловать за стол',
+        'room_refer_welcome_message': 'Вы стали реферов',
+        'exit_room_message': 'Вы покинули стол',
+        'room_left_time_message': 'До закрытия комнаты осталось: {}'
+    }
+}
