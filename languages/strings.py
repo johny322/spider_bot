@@ -7,6 +7,7 @@ strings = {
         'common_confirm_button': 'Подтвердить',
         'common_accept_button': 'Принять',
         'common_reject_button': 'Отклонить',
+        'common_cancel_button': 'Отмена',
         'admin_switch_state_to_user_button': 'В меню пользователя',
         'user_profile_button': 'Профиль',
         'select_room_button': 'Выбрать стол',
@@ -25,6 +26,13 @@ strings = {
         'room_welcome_message': 'Добро пожаловать за стол',
         'room_refer_welcome_message': 'Вы стали реферов',
         'exit_room_message': 'Вы покинули стол',
-        'room_left_time_message': 'До закрытия комнаты осталось: {}'
+        'room_left_time_message': 'До закрытия комнаты осталось: {}',
+        'start_game_message': 'Игра началась',
+        'user_exit_room_message': 'Игрок {} покинул стол',
+        'user_room_welcome_message': 'Игрок {}, присоединился за стол',
+        'user_room_refer_welcome_message': 'Игрок {} стал рефером',
+        'select_refer_message': 'Выберите рефера для отправки запроса на перевод {} у.е.',
+        'confirm_user_rq_message': 'Подтвердить перевод {} у.е. от игрока {}?',
+        'good_rq_message': 'Запрос отправлен'
     }
 }

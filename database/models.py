@@ -40,6 +40,7 @@ class RoomQueue(BaseModel):
 class Room(BaseModel):
     id = PrimaryKeyField(null=False)
     level = IntegerField(null=False)
-    users = TextField(null=True)
+    # users = TextField(null=True)
     created_at = DateTimeField(default=get_datetime_now)
     end_at = DateTimeField(null=False)
+    users_count = IntegerField(default=0)
