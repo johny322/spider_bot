@@ -136,7 +136,7 @@ async def common_choose_room_inline_kb(rooms: List[Room]) -> InlineKeyboardMarku
         keyboard.insert(
             InlineKeyboardButton(
                 text=f'№{room.id}({users_count} уч.)',
-                callback_data=f'room:{room.id}'
+                callback_data=f'room:{room.hex_id}:{room.id}'
             )
         )
     keyboard.row(
@@ -159,15 +159,15 @@ async def common_reject_accept_inline_kb(callback_data=None, lang_code: str = 'r
     return keyboard
 
 
-send_refer_request_cb = CallbackData('send_rq', 'action', 'money', 'user_tg_id', 'refer_id')
+send_refer_request_cb = CallbackData('send_rq', 'action', 'room_id', 'user_tg_id', 'refer_id')
 
 
-async def refers_request_inline_kb(room_id: int, user_tg_id: int, money: int = 100,
+async def refers_request_inline_kb(room_id: int, hex_id: str, user_tg_id: int, money: int = 100,
                                    lang_code: str = 'ru') -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(resize_keyboard=True, row_width=2)
     room_refers = await Controller.get_room_refers(room_id)
     for room_refer in room_refers:
-        text = f'{room_refer.full_name} (@{room_refer.username})' * 33
+        text = f'{room_refer.full_name} (@{room_refer.username})'
         keyboard.insert(
             InlineKeyboardButton(
                 text,
@@ -175,31 +175,31 @@ async def refers_request_inline_kb(room_id: int, user_tg_id: int, money: int = 1
                     refer_id=room_refer.tg_id,
                     action='send',
                     user_tg_id=user_tg_id,
-                    money=money
+                    room_id=room_id
                 )
             )
         )
     keyboard.row(
         InlineKeyboardButton(
             text=await get_string('common_cancel_button'),
-            callback_data=send_refer_request_cb.new(action='cancel', money=money, user_tg_id=user_tg_id, refer_id='')
+            callback_data=send_refer_request_cb.new(action='cancel', room_id=room_id, user_tg_id=user_tg_id, refer_id='')
         )
     )
     return keyboard
 
 
-confirm_request_cb = CallbackData('confirm_rq', 'action', 'user_tg_id')
+confirm_request_cb = CallbackData('confirm_rq', 'action', 'from_room_id', 'user_tg_id')
 
 
-async def confirm_request_inline_kb(user_tg_id: int, lang_code: str = 'ru'):
+async def confirm_request_inline_kb(user_tg_id: int, from_room_id: int, lang_code: str = 'ru'):
     keyboard = InlineKeyboardMarkup(resize_keyboard=True)
     common_reject_button = InlineKeyboardButton(
         await get_string('common_reject_button', lang_code),
-        callback_data=confirm_request_cb.new(action='reject_rq', user_tg_id=user_tg_id)
+        callback_data=confirm_request_cb.new(action='reject_rq', user_tg_id=user_tg_id, from_room_id=from_room_id)
     )
     common_accept_button = InlineKeyboardButton(
         await get_string('common_accept_button', lang_code),
-        callback_data=confirm_request_cb.new(action='accept_rq', user_tg_id=user_tg_id)
+        callback_data=confirm_request_cb.new(action='accept_rq', user_tg_id=user_tg_id, from_room_id=from_room_id)
     )
     keyboard.row(common_reject_button)
     keyboard.row(common_accept_button)

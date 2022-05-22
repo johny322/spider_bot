@@ -23,16 +23,39 @@ strings = {
         'send_start_message_data': 'Отправьте фото, видео, документ или голосовое сообщение',
         'new_start_message': 'Новое стартовое сообщение:\n{}',
         'select_level': 'Выберите уровень',
-        'room_welcome_message': 'Добро пожаловать за стол',
+        'room_welcome_message': 'Добро пожаловать за стол №{} ({}ур.) {}уч.',
         'room_refer_welcome_message': 'Вы стали реферов',
+        'not_started_yet_message': 'Игра еще не началась',
         'exit_room_message': 'Вы покинули стол',
         'room_left_time_message': 'До закрытия комнаты осталось: {}',
         'start_game_message': 'Игра началась',
         'user_exit_room_message': 'Игрок {} покинул стол',
         'user_room_welcome_message': 'Игрок {}, присоединился за стол',
         'user_room_refer_welcome_message': 'Игрок {} стал рефером',
-        'select_refer_message': 'Выберите рефера для отправки запроса на перевод {} у.е.',
+        'select_refer_message': 'Выберите рефера для отправки запроса на подтверждение перевода {} у.е.',
         'confirm_user_rq_message': 'Подтвердить перевод {} у.е. от игрока {}?',
-        'good_rq_message': 'Запрос отправлен'
+        'good_rq_message': 'Запрос отправлен',
+        'all_players_are_refers_message': 'Все игроки стали реферами',
+        'end_room_time_message': 'Время работы стола закончилось',
+        'end_room_refer_inaction_message': 'Рефер бездействует',
+        'end_room_message': '{}\n'
+                            'Игра завершена',
+        'start_refer_message': 'Вы не можете покинуть стол до конца игры',
+        'start_player_message': 'Чтобы покинуть стол нажмите кнопку "Покинуть стол"',
+        'next_level_message': 'Продолжить игру на следующем уровне({})? Стол будет выбран автоматически',
+        'room_is_full_message': 'Стол заполнен'
     }
+}
+
+levels_cost = {
+    1: 100,
+    2: 200,
+    3: 300,
+    4: 400,
+    5: 500,
+    6: 1000,
+    7: 2000,
+    8: 3000,
+    9: 4000,
+    10: 5000
 }

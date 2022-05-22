@@ -1,5 +1,7 @@
+import uuid
+
 from playhouse.sqliteq import SqliteQueueDatabase
-from peewee import Model, PrimaryKeyField, IntegerField, TextField, Check, BooleanField, DateTimeField
+from peewee import Model, PrimaryKeyField, IntegerField, TextField, Check, BooleanField, DateTimeField, AutoField
 from datetime import datetime
 
 import pytz
@@ -7,6 +9,10 @@ import pytz
 
 def get_datetime_now() -> datetime:
     return datetime.now(pytz.timezone("Europe/Moscow")).replace(tzinfo=None)
+
+
+def get_room_hex() -> str:
+    return uuid.uuid4().hex
 
 
 conn = SqliteQueueDatabase('main.db')
@@ -38,7 +44,8 @@ class RoomQueue(BaseModel):
 
 
 class Room(BaseModel):
-    id = PrimaryKeyField(null=False)
+    id = AutoField(primary_key=True, null=False, unique=True)
+    hex_id = TextField(default=get_room_hex)
     level = IntegerField(null=False)
     # users = TextField(null=True)
     created_at = DateTimeField(default=get_datetime_now)

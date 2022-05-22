@@ -20,13 +20,3 @@ class SendingMessage(StatesGroup):
 class AddRoom(StatesGroup):
     RoomLevel = State()
     ConfirmRoom = State()
-
-
-class SelectRoom(StatesGroup):
-    RoomLevel = State()
-    Room = State()
-
-
-class RoomMenu(StatesGroup):
-    IsPlayer = State()
-    IsRefer = State()
