@@ -8,6 +8,7 @@ strings = {
         'common_accept_button': 'Принять',
         'common_reject_button': 'Отклонить',
         'common_cancel_button': 'Отмена',
+        'common_close_button': 'Закрыть',
         'admin_switch_state_to_user_button': 'В меню пользователя',
         'user_profile_button': 'Профиль',
         'select_room_button': 'Выбрать стол',
@@ -15,14 +16,18 @@ strings = {
         'send_request_button': 'Отправить запрос реферу',
         'time_left_button': 'Оставшееся время',
         'admin_got_status_message': 'Вы получили статус администратора!',
-        'user_profile_message': 'Профиль пользователя {}',
+        'user_profile_message': 'Профиль игрока {}\n'
+                                'Максимальный уровень: {}',
         'admin_change_start_message_button': 'Изменить стартовое сообщение',
         'admin_sending_message_button': 'Сделать рассылку',
         'admin_add_room_button': 'Добавить комнату',
+        'admin_get_refers_button': 'Просмотр реферов',
+        'admin_get_rooms_button': 'Просмотр столов',
         'send_start_message_text': 'Отправьте текст нового сообщения',
         'send_start_message_data': 'Отправьте фото, видео, документ или голосовое сообщение',
-        'new_start_message': 'Новое стартовое сообщение:\n{}',
+        'new_start_message': 'Новое сообщение:\n{}',
         'select_level': 'Выберите уровень',
+        'select_room_message': 'Выберите стол',
         'room_welcome_message': 'Добро пожаловать за стол №{} ({}ур.) {}уч.',
         'room_refer_welcome_message': 'Вы стали реферов',
         'not_started_yet_message': 'Игра еще не началась',
@@ -43,7 +48,14 @@ strings = {
         'start_refer_message': 'Вы не можете покинуть стол до конца игры',
         'start_player_message': 'Чтобы покинуть стол нажмите кнопку "Покинуть стол"',
         'next_level_message': 'Продолжить игру на следующем уровне({})? Стол будет выбран автоматически',
-        'room_is_full_message': 'Стол заполнен'
+        'room_is_full_message': 'Стол заполнен',
+        'refers_info_message': '<b>Рефер</b>: {} (@{}) комата №{}, макс.ур. {}',
+        'no_rooms_message': 'На этом уровне нет столов',
+        'room_info_message': 'Стол №{}, {}ур.\n'
+                             '{}',
+        'room_user_message': 'Игрок: {} (@{}), рефер: {}, макс.ур. {}',
+        'yes_message': 'Да',
+        'no_message': 'Нет'
     }
 }
 

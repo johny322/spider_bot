@@ -123,7 +123,24 @@ async def common_choose_level_inline_kb(max_level: int, is_admin: bool = False) 
     return keyboard
 
 
-async def common_choose_room_inline_kb(rooms: List[Room]) -> InlineKeyboardMarkup:
+async def common_back_cancel_inline_kb(is_admin=False) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup(resize_keyboard=True)
+    keyboard.row(
+        InlineKeyboardButton(
+            text=await get_string('common_back_button'),
+            callback_data='common_back_button'
+        )
+    )
+    keyboard.row(
+        InlineKeyboardButton(
+            text=await get_string('common_cancel_button'),
+            callback_data=cancel_cb.new(is_admin=is_admin)
+        )
+    )
+    return keyboard
+
+
+async def common_choose_room_inline_kb(rooms: List[Room], is_admin=False) -> InlineKeyboardMarkup:
     # rooms = await Controller.get_rooms_by_level(int(level))
     keyboard = InlineKeyboardMarkup(resize_keyboard=True, row_width=2)
     for room in rooms:
@@ -141,8 +158,14 @@ async def common_choose_room_inline_kb(rooms: List[Room]) -> InlineKeyboardMarku
         )
     keyboard.row(
         InlineKeyboardButton(
+            text=await get_string('common_back_button'),
+            callback_data='common_back_button'
+        )
+    )
+    keyboard.row(
+        InlineKeyboardButton(
             text=await get_string('common_cancel_button'),
-            callback_data=cancel_cb.new(is_admin=False)
+            callback_data=cancel_cb.new(is_admin=is_admin)
         )
     )
     return keyboard
@@ -182,7 +205,8 @@ async def refers_request_inline_kb(room_id: int, hex_id: str, user_tg_id: int, m
     keyboard.row(
         InlineKeyboardButton(
             text=await get_string('common_cancel_button'),
-            callback_data=send_refer_request_cb.new(action='cancel', room_id=room_id, user_tg_id=user_tg_id, refer_id='')
+            callback_data=send_refer_request_cb.new(action='cancel', room_id=room_id, user_tg_id=user_tg_id,
+                                                    refer_id='')
         )
     )
     return keyboard

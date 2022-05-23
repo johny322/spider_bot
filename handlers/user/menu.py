@@ -5,8 +5,8 @@ from admin_utils import get_start_message
 from admin_utils.start_message import get_start_message_file
 from config.data import MAX_PLAYERS
 from controller__init import Controller
-from handlers.user.room import room_sleep
-from handlers.user.room import start_room_game, send_room_message
+from tg_bot.__main__ import scheduler
+from utils import start_room_game, send_room_message, refer_sleep, room_sleep, close_room
 from keyboards import user_menu_kb, common_choose_level_inline_kb, cancel_cb, common_choose_room_inline_kb, \
     room_kb
 from languages import get_string_with_args, get_string
@@ -65,14 +65,18 @@ async def user_start_handler(message: Message, state: FSMContext):
 
 @dp.message_handler(TextEquals('user_profile_button'), state=UserMenu.IsUser)
 async def user_profile_handler(message: Message, state: FSMContext):
+    user = await Controller.get_user(message.from_user.id)
+    user_name = f'{user.full_name} (@{user.username})'
     await bot.send_message(message.chat.id, await get_string_with_args('user_profile_message',
-                                                                       message.from_user.username))
+                                                                       user_name,
+                                                                       user.max_level))
 
 
 @dp.message_handler(TextEquals('select_room_button'), state=UserMenu.IsUser)
 async def rooms_handler(message: Message, state: FSMContext):
     user = await Controller.get_user(message.from_user.id)
     user_level = user.max_level
+    await state.update_data(user_level=user_level)
     await bot.send_message(message.chat.id, await get_string('select_level'),
                            reply_markup=await common_choose_level_inline_kb(user_level))
 
@@ -86,14 +90,31 @@ async def select_room_level_handler(callback: CallbackQuery, state: FSMContext):
     rooms = await Controller.get_rooms_by_level(level)
     free_rooms = await Controller.get_free_rooms(level)
     if (not rooms) or (not free_rooms):
-        await Controller.add_room(level)
+        room_id = await Controller.add_room(level)
+        room = await Controller.get_room(room_id)
+        room_hex_id = room.hex_id
         rooms = await Controller.get_rooms_by_level(level)
+
+        run_date = room.end_at
+        print('add_job', run_date)
+        scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id),
+                          timezone='Europe/Moscow')
     await callback.message.edit_text(
-        'Выберите стол',
+        await get_string('select_room_message'),
         reply_markup=await common_choose_room_inline_kb(rooms)
     )
 
     await SelectRoom.Room.set()
+
+
+@dp.callback_query_handler(text='common_back_button', state=SelectRoom.Room)
+async def back_get_level_handler(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    user_level = data['user_level']
+    await callback.message.edit_text(
+        await get_string('select_level'), reply_markup=await common_choose_level_inline_kb(user_level)
+    )
+    await SelectRoom.RoomLevel.set()
 
 
 @dp.callback_query_handler(state=SelectRoom.Room)
@@ -127,6 +148,7 @@ async def select_room_handler(callback: CallbackQuery, state: FSMContext):
         room_users = await Controller.get_room_users(room_id)
         if len(room_users) == MAX_PLAYERS:
             await start_room_game(room_id)
-            await room_sleep(room_id, room_hex_id)
+            await refer_sleep(room_id, room_hex_id)
+            # await room_sleep(room_id, room_hex_id)
     else:
         await callback.answer(await get_string('room_is_full_message'), show_alert=True)

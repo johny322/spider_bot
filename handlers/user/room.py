@@ -1,9 +1,10 @@
 import asyncio
+from typing import Optional
 
 from aiogram.dispatcher import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from config.data import MAX_PLAYERS, ROOM_TIME
+from config.data import MAX_PLAYERS
 from controller__init import Controller
 from filters import TextEquals
 from keyboards import user_menu_kb, send_refer_request_cb, confirm_request_inline_kb, confirm_request_cb, room_kb, \
@@ -13,6 +14,8 @@ from languages.utils import get_level_cost
 from states import UserMenu
 from states.user.room import RoomMenu
 from tg_bot import dp, bot
+from tg_bot.__main__ import scheduler
+from utils import start_room_game, send_room_message, end_room_message, refer_sleep, room_sleep, close_room
 
 
 @dp.message_handler(TextEquals('exit_room_button'), state=RoomMenu.IsPlayer)
@@ -37,8 +40,12 @@ async def room_left_time_handler(message: Message, state: FSMContext):
 
 
 @dp.callback_query_handler(send_refer_request_cb.filter(action='cancel'), state=RoomMenu.IsPlayer)
-async def cancel_send_refer_handler(callback: CallbackQuery):
+async def cancel_send_refer_handler(callback: CallbackQuery, state: FSMContext, raw_state: Optional[str],
+                                    callback_data: dict):
+    print(raw_state)
+    print(callback_data)
     await callback.message.delete()
+    print('delete')
 
 
 @dp.callback_query_handler(send_refer_request_cb.filter(), state=RoomMenu.IsPlayer)
@@ -111,7 +118,10 @@ async def accept_rq_handler(callback: CallbackQuery, state: FSMContext):
         await get_string('room_refer_welcome_message'),
         reply_markup=await room_kb(True)
     )
-    user = await Controller.get_user(user_tg_id)
+    # print('pre user')
+    # await asyncio.sleep(10)
+    # user = await Controller.get_user(user_tg_id)
+    # print('post user')
     user_name = f'{user.full_name} (@{user.username})'
     await send_room_message(user.room_id, await get_string_with_args('user_room_refer_welcome_message', user_name))
     await callback.message.delete()
@@ -137,6 +147,8 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         room_id = await Controller.add_room(level)
         room = await Controller.get_room(room_id)
         room_hex_id = room.hex_id
+        scheduler.add_job(close_room, "date", run_date=room.end_at, args=(room_id, room_hex_id),
+                          timezone='Europe/Moscow')
     else:
         room = free_rooms[0]
         room_id = room.id
@@ -166,7 +178,8 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         room_users = await Controller.get_room_users(room_id)
         if len(room_users) == MAX_PLAYERS:
             await start_room_game(room_id)
-            await room_sleep(room_id, room_hex_id)
+            await refer_sleep(room_id, room_hex_id)
+            # await room_sleep(room_id, room_hex_id)
     else:
         await message.answer(await get_string('room_is_full_message'), reply_markup=await user_menu_kb())
         await state.reset_state()
@@ -194,66 +207,10 @@ async def send_refer_request_handler(message: Message, state: FSMContext):
                            await get_string_with_args('select_refer_message', level_cost),
                            reply_markup=await refers_request_inline_kb(room_id, room_hex_id, message.from_user.id))
 
-
-@dp.message_handler(commands=['room'], state=UserMenu.IsUser)
-async def user_add_to_queue(message: Message, state: FSMContext):
-    room_num = message.get_args()
-    if room_num:
-        room_num = int(room_num.strip())
-        await Controller.add_user_to_queue(room_num, message.from_user.id)
-        print('Added user to queue')
-
-
-async def start_room_game(room_id):
-    room_users = await Controller.get_room_users(room_id)
-    for room_user in room_users:
-        try:
-            await bot.send_message(room_user.tg_id, await get_string('start_game_message'))
-        except Exception as e:
-            print(e)
-
-
-async def send_room_message(room_id, text, reply_markup=None, state=None):
-    room_users = await Controller.get_room_users(room_id)
-    for room_user in room_users:
-        try:
-            await bot.send_message(room_user.tg_id, text, reply_markup=reply_markup)
-            if state:
-                current_state = dp.current_state(chat=room_user.tg_id, user=room_user.tg_id)
-                await current_state.set_state(state)
-        except Exception as e:
-            print(e)
-
-
-async def end_room_message(room_id, text, reply_markup=None, state=None, increase_level=False):
-    room_users = await Controller.get_room_users(room_id)
-    # await bot.delete_message()
-    for room_user in room_users:
-        try:
-            await bot.send_message(room_user.tg_id, text, reply_markup=reply_markup)
-            if increase_level:
-                max_level = room_user.max_level
-                if max_level < 10:
-                    await Controller.update_user(room_user.tg_id, max_level=max_level + 1)
-            if state:
-                current_state = dp.current_state(chat=room_user.tg_id, user=room_user.tg_id)
-                await current_state.set_state(state)
-        except Exception as e:
-            print(e)
-    await Controller.remove_room(room_id)
-
-
-async def room_sleep(room_id, hex_id):
-    print('sleep')
-    await asyncio.sleep(ROOM_TIME)
-    print('start check')
-    if await Controller.room_exist(room_id, hex_id):
-        room_users = await Controller.get_room_users(room_id)
-        for room_user in room_users:
-            await bot.send_message(
-                room_user.tg_id,
-                await get_string_with_args('end_room_message', await get_string('end_room_time_message')),
-                reply_markup=await user_menu_kb()
-            )
-            current_state = dp.current_state(chat=room_user.tg_id, user=room_user.tg_id)
-            await current_state.set_state(UserMenu.IsUser.state)
+# @dp.message_handler(commands=['room'], state=UserMenu.IsUser)
+# async def user_add_to_queue(message: Message, state: FSMContext):
+#     room_num = message.get_args()
+#     if room_num:
+#         room_num = int(room_num.strip())
+#         await Controller.add_user_to_queue(room_num, message.from_user.id)
+#         print('Added user to queue')

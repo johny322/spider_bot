@@ -21,5 +21,6 @@ if not TOKEN:
 ADMIN_PASS = config['BOT_SETTINGS']['AdminPassword'] if config['BOT_SETTINGS']['AdminPassword'] else '123'
 
 MAX_PLAYERS = 2
-ROOM_TIME = 30  # 6*60*60
+ROOM_TIME = 20  # 6*60*60
+REFER_TIME = 10  # 1800
 # url: https://t.me/
