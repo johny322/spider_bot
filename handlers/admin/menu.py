@@ -6,7 +6,8 @@ from admin_utils.start_message import edit_start_message_file
 from controller__init import Controller
 from keyboards import admin_menu_kb, user_menu_kb, common_skip_kb, common_reject_accept_kb, \
     common_choose_level_inline_kb, common_reject_accept_inline_kb, cancel_cb, paginate_markup, PaginateCallback, \
-    common_choose_room_inline_kb, common_back_cancel_inline_kb
+    common_choose_room_inline_kb, common_back_cancel_inline_kb, common_back_skip_kb, common_back_confirm_kb, \
+    common_empty_kb
 from languages import get_string, get_string_with_args
 from tg_bot import dp, bot
 from filters import CheckAdminPassword, TextEquals
@@ -24,22 +25,36 @@ async def admin_get_status_handler(message: Message, state: FSMContext):
 @dp.message_handler(TextEquals('admin_change_start_message_button'), state=AdminMenu.IsAdmin)
 async def change_start_message_handler(message: Message, state: FSMContext):
     await bot.send_message(message.chat.id, await get_string('send_start_message_text'),
-                           reply_markup=await common_skip_kb())
+                           reply_markup=await common_back_skip_kb())
     await state.update_data(action=message.text)
     await ChangeStartMessage.SetText.set()
+
+
+@dp.message_handler(TextEquals('common_back_button'), state=ChangeStartMessage.SetText)
+async def admin_change_start_message_back_handler(message: Message, state: FSMContext):
+    await bot.send_message(message.from_user.id, await get_string('common_choose_action_message'),
+                           reply_markup=await admin_menu_kb())
+    await AdminMenu.IsAdmin.set()
 
 
 @dp.message_handler(TextEquals('common_skip_button'), state=ChangeStartMessage.SetText)
 async def skip_change_start_message_text_handler(message: Message, state: FSMContext):
     await bot.send_message(message.chat.id, await get_string('send_start_message_data'),
-                           reply_markup=await common_skip_kb())
+                           reply_markup=await common_back_skip_kb())
     await ChangeStartMessage.SetData.set()
+
+
+@dp.message_handler(TextEquals('common_back_button'), state=ChangeStartMessage.SetData)
+async def admin_change_start_message_data_back_handler(message: Message, state: FSMContext):
+    await bot.send_message(message.chat.id, await get_string('send_start_message_text'),
+                           reply_markup=await common_back_skip_kb())
+    await ChangeStartMessage.SetText.set()
 
 
 @dp.message_handler(state=ChangeStartMessage.SetText)
 async def change_start_message_data_handler(message: Message, state: FSMContext):
     await bot.send_message(message.chat.id, await get_string('send_start_message_data'),
-                           reply_markup=await common_skip_kb())
+                           reply_markup=await common_back_skip_kb())
 
     await state.update_data(new_message_text=message.text)
     await ChangeStartMessage.SetData.set()
@@ -50,8 +65,10 @@ async def skip_change_start_message_data_handler(message: Message, state: FSMCon
     data = await state.get_data()
     new_message_text = data.get('new_message_text')
     text = await get_string('new_start_message')
-    await bot.send_message(message.chat.id, text.format(new_message_text),
-                           reply_markup=await common_reject_accept_kb(), parse_mode="MarkdownV2")
+    text = text.format(new_message_text)
+    text = text.replace('.', '\.').replace('-', '\-').replace('(', '\(').replace(')', '\)')
+    await bot.send_message(message.chat.id, text,
+                           reply_markup=await common_back_confirm_kb(), parse_mode="MarkdownV2")
 
     await ChangeStartMessage.ConfirmChanges.set()
 
@@ -73,7 +90,7 @@ async def set_start_message_data_handler(message: Message, state: FSMContext):
         file_type = 'video'
     else:
         await bot.send_message(message.chat.id, await get_string('send_start_message_data'),
-                               reply_markup=await common_skip_kb())
+                               reply_markup=await common_back_skip_kb())
         return
     await state.update_data(file_id=file_id, file_type=file_type)
 
@@ -82,9 +99,10 @@ async def set_start_message_data_handler(message: Message, state: FSMContext):
     if new_message_text:
         text = await get_string('new_start_message')
         text = text.format(new_message_text)
+        text = text.replace('.', '\.').replace('-', '\-').replace('(', '\(').replace(')', '\)')
     else:
         text = None
-    reply_markup = await common_reject_accept_kb()
+    reply_markup = await common_back_confirm_kb()
     if file_type == 'photo':
         await bot.send_photo(message.chat.id, file_id, caption=text, reply_markup=reply_markup, parse_mode="MarkdownV2")
     elif file_type == 'document':
@@ -100,7 +118,14 @@ async def set_start_message_data_handler(message: Message, state: FSMContext):
     await ChangeStartMessage.ConfirmChanges.set()
 
 
-@dp.message_handler(TextEquals('common_accept_button'), state=ChangeStartMessage.ConfirmChanges)
+@dp.message_handler(TextEquals('common_back_button'), state=ChangeStartMessage.ConfirmChanges)
+async def admin_change_start_message_confirm_back_handler(message: Message, state: FSMContext):
+    await bot.send_message(message.chat.id, await get_string('send_start_message_data'),
+                           reply_markup=await common_back_skip_kb())
+    await ChangeStartMessage.SetData.set()
+
+
+@dp.message_handler(TextEquals('common_confirm_button'), state=ChangeStartMessage.ConfirmChanges)
 async def accept_changes_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     action = data['action']
@@ -117,6 +142,7 @@ async def accept_changes_handler(message: Message, state: FSMContext):
         await bot.send_message(message.chat.id, 'Сохранено', reply_markup=await admin_menu_kb())
         await AdminMenu.IsAdmin.set()
     elif action == await get_string("admin_sending_message_button"):
+        new_message_text = new_message_text.replace('.', '\.').replace('-', '\-').replace('(', '\(').replace(')', '\)')
         await bot.send_message(message.chat.id, 'Начал рассылку', reply_markup=await admin_menu_kb())
         await AdminMenu.IsAdmin.set()
         for user in Controller.users.select():
@@ -135,11 +161,7 @@ async def accept_changes_handler(message: Message, state: FSMContext):
                 print(e)
                 pass
         await bot.send_message(message.chat.id, 'Рассылка завершена')
-
-
-@dp.message_handler(TextEquals('common_reject_button'), state=ChangeStartMessage.ConfirmChanges)
-async def reject_changes_handler(message: Message, state: FSMContext):
-    await admin_get_status_handler(message, state)
+    await state.reset_data()
 
 
 @dp.message_handler(TextEquals('send_start_message_text'), state=ChangeStartMessage.SetText)
@@ -158,12 +180,16 @@ async def admin_switch_state_to_user_handler(message: Message, state: FSMContext
 
 @dp.callback_query_handler(cancel_cb.filter(is_admin='True'), state='*')
 async def cancel_handler(callback: CallbackQuery, state: FSMContext):
+    await bot.send_message(callback.message.chat.id, await get_string('common_choose_action_message'),
+                           reply_markup=await admin_menu_kb())
     await callback.message.delete()
     await AdminMenu.IsAdmin.set()
 
 
 @dp.message_handler(TextEquals('admin_get_rooms_button'), state=AdminMenu.IsAdmin)
 async def admin_get_rooms_handler(message: Message, state: FSMContext):
+    await bot.send_message(message.from_user.id, await get_string('admin_refers_list_message'),
+                           reply_markup=await common_empty_kb())
     await bot.send_message(message.chat.id, await get_string('select_level'),
                            reply_markup=await common_choose_level_inline_kb(10, True))
     await AdminMenu.SelectLevel.set()
@@ -171,8 +197,6 @@ async def admin_get_rooms_handler(message: Message, state: FSMContext):
 
 @dp.callback_query_handler(text='common_back_button', state=AdminMenu.SelectRoom)
 async def back_get_level_handler(callback: CallbackQuery, state: FSMContext):
-    # await bot.send_message(message.chat.id, await get_string('select_level'),
-    #                        reply_markup=await common_choose_level_inline_kb(10, True))
     await callback.message.edit_text(
         await get_string('select_level'), reply_markup=await common_choose_level_inline_kb(10, True)
     )
@@ -188,7 +212,7 @@ async def admin_get_level_handler(callback: CallbackQuery, state: FSMContext):
         await callback.answer(await get_string('no_rooms_message'))
         return
     await callback.message.edit_text(
-        await get_string('select_room_message'),
+        await get_string('select_room_admin_message'),
         reply_markup=await common_choose_room_inline_kb(rooms, True)
     )
     await AdminMenu.SelectRoom.set()
@@ -207,54 +231,17 @@ async def admin_get_room_handler(callback: CallbackQuery, state: FSMContext):
         text.append(
             await get_string_with_args('room_user_message', user.full_name, user.username, is_refer, user.max_level))
 
-    # await bot.send_message(
-    #     callback.message.chat.id,
-    #     await get_string_with_args('room_info_message', room_id, level, '\n'.join(text))
-    # )
     await callback.message.edit_text(
         await get_string_with_args('room_info_message', room_id, level, '\n'.join(text)),
         reply_markup=await common_back_cancel_inline_kb(True)
     )
-    # await state.reset_state()
-    # await AdminMenu.IsAdmin.set()
-
-
-# @dp.message_handler(TextEquals('admin_add_room_button'), state=AdminMenu.IsAdmin)
-# async def add_room_handler(message: Message, state: FSMContext):
-#     await bot.send_message(message.chat.id, await get_string('select_level'),
-#                            reply_markup=await common_choose_level_inline_kb(10, True))
-#     await AddRoom.RoomLevel.set()
-
-
-@dp.callback_query_handler(state=AddRoom.ConfirmRoom)
-async def accept_add_room_handler(callback: CallbackQuery, state: FSMContext):
-    if callback.data == 'common_accept_il_button':
-        data = await state.get_data()
-        level = data['level']
-        await Controller.add_room(int(level))
-        await callback.answer(f'Стол на уровне {level} добавлен', show_alert=True)
-    elif callback.data == 'common_reject_il_button':
-        await callback.answer()
-    await bot.edit_message_text(await get_string('select_level'), callback.message.chat.id, callback.message.message_id,
-                                reply_markup=await common_choose_level_inline_kb(10, True))
-    await AddRoom.RoomLevel.set()
-
-
-@dp.callback_query_handler(state=AddRoom.RoomLevel)
-async def get_room_handler(callback: CallbackQuery, state: FSMContext):
-    level = callback.data.split(':')[-1]
-    await state.update_data(level=level)
-    await callback.message.edit_text(
-        f'Добавить комнату на уровень {level}?',
-        reply_markup=await common_reject_accept_inline_kb()
-    )
-    await AddRoom.ConfirmRoom.set()
 
 
 @dp.message_handler(TextEquals('admin_get_refers_button'), state=AdminMenu.IsAdmin)
 async def get_refers_handler(message: Message, state: FSMContext):
     refers = await Controller.get_all_refers()
     if not refers:
+        await bot.send_message(message.from_user.id, await get_string('admin_no_refers_message'))
         return
     users = [
         (user.full_name, user.username, user.room_id, user.max_level) for user in refers

@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from typing import Optional
 
 from aiogram.dispatcher import FSMContext
@@ -35,17 +36,21 @@ async def room_left_time_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     room_id = data['room_id']
     left_time = await Controller.get_left_time(room_id)
+    left_hours = left_time.seconds // 3600
+    left_minutes = (left_time.seconds - left_hours * 3600) // 60
+    left_seconds = left_time.seconds - left_hours * 3600 - left_minutes * 60
     await bot.send_message(message.chat.id,
-                           await get_string_with_args('room_left_time_message', left_time))
+                           await get_string_with_args('room_left_time_message',
+                                                      left_hours,
+                                                      left_minutes,
+                                                      left_seconds
+                                                      ))
 
 
 @dp.callback_query_handler(send_refer_request_cb.filter(action='cancel'), state=RoomMenu.IsPlayer)
 async def cancel_send_refer_handler(callback: CallbackQuery, state: FSMContext, raw_state: Optional[str],
                                     callback_data: dict):
-    print(raw_state)
-    print(callback_data)
     await callback.message.delete()
-    print('delete')
 
 
 @dp.callback_query_handler(send_refer_request_cb.filter(), state=RoomMenu.IsPlayer)
@@ -54,14 +59,15 @@ async def chose_send_refer_handler(callback: CallbackQuery, state: FSMContext):
     refer_id = cb_data.split(':')[-1]
     user_tg_id = cb_data.split(':')[-2]
     from_room_id = cb_data.split(':')[-3]
+    refer = await Controller.get_user(int(refer_id))
+    if not refer.is_refer:
+        await callback.answer(await get_string('user_is_not_refer_message'), show_alert=True)
+        await callback.message.delete()
+        return
     user = await Controller.get_user(int(user_tg_id))
     user_name = f'{user.full_name} (@{user.username})'
     await callback.answer(await get_string('good_rq_message'), show_alert=True)
     await callback.message.delete()
-    # await bot.send_message(
-    #     callback.message.chat.id,
-    #     await get_string('good_rq_message')
-    # )
     data = await state.get_data()
     level = data['level']
     level_cost = await get_level_cost(level)
@@ -82,7 +88,7 @@ async def rq_outside_room_handler(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 
 
-@dp.callback_query_handler(confirm_request_cb.filter(action='reject_rq'), state=RoomMenu.IsRefer)
+@dp.callback_query_handler(confirm_request_cb.filter(action='reject_rq'), state='*')
 async def reject_rq_handler(callback: CallbackQuery):
     await callback.message.delete()
 
@@ -96,32 +102,38 @@ async def accept_rq_handler(callback: CallbackQuery, state: FSMContext):
     cb_data = callback.data
     user_tg_id = int(cb_data.split(':')[-1])
     from_room_id = int(cb_data.split(':')[-2])
-    # room_hex_id = cb_data.split(':')[-2]
-    # if not await Controller.room_exist(room_id, room_hex_id):
-    #     await callback.answer('Комната уже закрыта', show_alert=True)
-    #     await callback.message.delete()
-    #     return
+
     from_room = await Controller.get_room(from_room_id)
-    room_hex_id = from_room.hex_id
-    if room_hex_id != current_room_hex_id:
-        await callback.answer('Вы уже покинули эту комнату', show_alert=True)
+    room_hex_id = from_room.hex_id if from_room else ''
+
+    if not await Controller.room_exist(room_id, room_hex_id):
+        await callback.answer(await get_string('room_already_closed_message'), show_alert=True)
         await callback.message.delete()
         return
+
+    if (room_hex_id != current_room_hex_id) or (from_room_id != room_id):
+        await callback.answer(await get_string('already_exit_room_message'), show_alert=True)
+        await callback.message.delete()
+        return
+
     user = await Controller.get_user(user_tg_id)
-    if user.is_refer:
-        await callback.answer('Игрок уже является рефером', show_alert=True)
+    if user.room_id != room_id:
+        await callback.answer(await get_string('user_not_in_room_message'), show_alert=True)
         await callback.message.delete()
         return
+    if user.is_refer:
+        await callback.answer(await get_string('user_is_refer_message'), show_alert=True)
+        await callback.message.delete()
+        return
+
     await Controller.update_user(user_tg_id, is_refer=True)
     await bot.send_message(
         user_tg_id,
         await get_string('room_refer_welcome_message'),
         reply_markup=await room_kb(True)
     )
-    # print('pre user')
-    # await asyncio.sleep(10)
-    # user = await Controller.get_user(user_tg_id)
-    # print('post user')
+    current_state = dp.current_state(chat=user_tg_id, user=user_tg_id)
+    await current_state.set_state(RoomMenu.IsRefer.state)
     user_name = f'{user.full_name} (@{user.username})'
     await send_room_message(user.room_id, await get_string_with_args('user_room_refer_welcome_message', user_name))
     await callback.message.delete()
@@ -137,6 +149,12 @@ async def accept_rq_handler(callback: CallbackQuery, state: FSMContext):
                                    increase_level=True)
 
 
+@dp.callback_query_handler(confirm_request_cb.filter(action='accept_rq'), state='*')
+async def player_rq_handler(callback: CallbackQuery):
+    await callback.answer(await get_string('not_refer_message'))
+    await callback.message.delete()
+
+
 @dp.message_handler(TextEquals('common_accept_button'), state=RoomMenu.NextRoom)
 async def accept_next_level_handler(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -147,7 +165,7 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         room_id = await Controller.add_room(level)
         room = await Controller.get_room(room_id)
         room_hex_id = room.hex_id
-        scheduler.add_job(close_room, "date", run_date=room.end_at, args=(room_id, room_hex_id),
+        scheduler.add_job(close_room, "date", run_date=room.end_at, args=(dp, bot, Controller, room_id, room_hex_id),
                           timezone='Europe/Moscow')
     else:
         room = free_rooms[0]
@@ -179,7 +197,6 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         if len(room_users) == MAX_PLAYERS:
             await start_room_game(room_id)
             await refer_sleep(room_id, room_hex_id)
-            # await room_sleep(room_id, room_hex_id)
     else:
         await message.answer(await get_string('room_is_full_message'), reply_markup=await user_menu_kb())
         await state.reset_state()
@@ -206,11 +223,3 @@ async def send_refer_request_handler(message: Message, state: FSMContext):
     await bot.send_message(message.chat.id,
                            await get_string_with_args('select_refer_message', level_cost),
                            reply_markup=await refers_request_inline_kb(room_id, room_hex_id, message.from_user.id))
-
-# @dp.message_handler(commands=['room'], state=UserMenu.IsUser)
-# async def user_add_to_queue(message: Message, state: FSMContext):
-#     room_num = message.get_args()
-#     if room_num:
-#         room_num = int(room_num.strip())
-#         await Controller.add_user_to_queue(room_num, message.from_user.id)
-#         print('Added user to queue')

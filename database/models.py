@@ -37,17 +37,10 @@ class User(BaseModel):
     is_refer = BooleanField(default=False)
 
 
-class RoomQueue(BaseModel):
-    id = PrimaryKeyField(null=False)
-    room_level = IntegerField(null=False)
-    users = TextField(null=True)
-
-
 class Room(BaseModel):
     id = AutoField(primary_key=True, null=False, unique=True)
     hex_id = TextField(default=get_room_hex)
     level = IntegerField(null=False)
-    # users = TextField(null=True)
     created_at = DateTimeField(default=get_datetime_now)
     end_at = DateTimeField(null=False)
     users_count = IntegerField(default=0)

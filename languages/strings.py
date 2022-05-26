@@ -9,6 +9,7 @@ strings = {
         'common_reject_button': 'Отклонить',
         'common_cancel_button': 'Отмена',
         'common_close_button': 'Закрыть',
+        'common_choose_action_message': 'Выберите действие',
         'admin_switch_state_to_user_button': 'В меню пользователя',
         'user_profile_button': 'Профиль',
         'select_room_button': 'Выбрать стол',
@@ -22,17 +23,21 @@ strings = {
         'admin_sending_message_button': 'Сделать рассылку',
         'admin_add_room_button': 'Добавить комнату',
         'admin_get_refers_button': 'Просмотр реферов',
+        'admin_no_refers_message': 'Ошибка! В данный момент нет активных реферов',
         'admin_get_rooms_button': 'Просмотр столов',
         'send_start_message_text': 'Отправьте текст нового сообщения',
         'send_start_message_data': 'Отправьте фото, видео, документ или голосовое сообщение',
         'new_start_message': 'Новое сообщение:\n{}',
         'select_level': 'Выберите уровень',
-        'select_room_message': 'Выберите стол',
+        'select_room_admin_message': 'Выберите стол',
+        'select_room_message': 'Выберите стол\n'
+                               'Стоимость уровня - {}\n'
+                               'Цена указана в игровой валюте.',
         'room_welcome_message': 'Добро пожаловать за стол №{} ({}ур.) {}уч.',
         'room_refer_welcome_message': 'Вы стали реферов',
         'not_started_yet_message': 'Игра еще не началась',
         'exit_room_message': 'Вы покинули стол',
-        'room_left_time_message': 'До закрытия комнаты осталось: {}',
+        'room_left_time_message': 'До закрытия комнаты осталось: {}ч {}м {}с',
         'start_game_message': 'Игра началась',
         'user_exit_room_message': 'Игрок {} покинул стол',
         'user_room_welcome_message': 'Игрок {}, присоединился за стол',
@@ -55,7 +60,14 @@ strings = {
                              '{}',
         'room_user_message': 'Игрок: {} (@{}), рефер: {}, макс.ур. {}',
         'yes_message': 'Да',
-        'no_message': 'Нет'
+        'no_message': 'Нет',
+        'admin_refers_list_message': 'Список столов',
+        'not_refer_message': 'Вы не являетесь рефером в этой комнате',
+        'user_is_refer_message': 'Игрок уже является рефером',
+        'user_not_in_room_message': 'Игрок не находится за данным столом',
+        'room_already_closed_message': 'Комната уже закрыта',
+        'already_exit_room_message': 'Вы уже покинули эту комнату',
+        'user_is_not_refer_message': 'Игрок не является рефером'
     }
 }
 

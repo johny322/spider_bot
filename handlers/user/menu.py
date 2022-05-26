@@ -5,6 +5,7 @@ from admin_utils import get_start_message
 from admin_utils.start_message import get_start_message_file
 from config.data import MAX_PLAYERS
 from controller__init import Controller
+from languages.utils import get_level_cost
 from tg_bot.__main__ import scheduler
 from utils import start_room_game, send_room_message, refer_sleep, room_sleep, close_room
 from keyboards import user_menu_kb, common_choose_level_inline_kb, cancel_cb, common_choose_room_inline_kb, \
@@ -43,21 +44,27 @@ async def user_start_handler(message: Message, state: FSMContext):
         await Controller.add_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
     start_message_file_data = await get_start_message_file()
     start_text = await get_start_message()
+    start_text = start_text.replace('.', '\.').replace('-', '\-').replace('(', '\(').replace(')', '\)')
     reply_markup = await user_menu_kb()
     if start_message_file_data:
-        file_id, file_type = start_message_file_data.split(', ')
-        if file_type == 'photo':
-            await bot.send_photo(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
-                                 parse_mode="MarkdownV2")
-        elif file_type == 'document':
-            await bot.send_document(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
-                                    parse_mode="MarkdownV2")
-        elif file_type == 'voice':
-            await bot.send_voice(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
-                                 parse_mode="MarkdownV2")
-        elif file_type == 'video':
-            await bot.send_video(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
-                                 parse_mode="MarkdownV2")
+        try:
+            file_id, file_type = start_message_file_data.split(', ')
+        except ValueError:
+            await bot.send_message(message.chat.id, start_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
+        else:
+            file_id, file_type = start_message_file_data.split(', ')
+            if file_type == 'photo':
+                await bot.send_photo(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
+                                     parse_mode="MarkdownV2")
+            elif file_type == 'document':
+                await bot.send_document(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
+                                        parse_mode="MarkdownV2")
+            elif file_type == 'voice':
+                await bot.send_voice(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
+                                     parse_mode="MarkdownV2")
+            elif file_type == 'video':
+                await bot.send_video(message.chat.id, file_id, caption=start_text, reply_markup=reply_markup,
+                                     parse_mode="MarkdownV2")
     else:
         await bot.send_message(message.chat.id, start_text, reply_markup=reply_markup, parse_mode="MarkdownV2")
     await UserMenu.IsUser.set()
@@ -96,11 +103,10 @@ async def select_room_level_handler(callback: CallbackQuery, state: FSMContext):
         rooms = await Controller.get_rooms_by_level(level)
 
         run_date = room.end_at
-        print('add_job', run_date)
         scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id),
                           timezone='Europe/Moscow')
     await callback.message.edit_text(
-        await get_string('select_room_message'),
+        await get_string_with_args('select_room_message', str(await get_level_cost(level))),
         reply_markup=await common_choose_room_inline_kb(rooms)
     )
 
@@ -149,6 +155,5 @@ async def select_room_handler(callback: CallbackQuery, state: FSMContext):
         if len(room_users) == MAX_PLAYERS:
             await start_room_game(room_id)
             await refer_sleep(room_id, room_hex_id)
-            # await room_sleep(room_id, room_hex_id)
     else:
         await callback.answer(await get_string('room_is_full_message'), show_alert=True)
