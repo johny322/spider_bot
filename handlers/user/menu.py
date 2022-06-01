@@ -73,9 +73,10 @@ async def user_start_handler(message: Message, state: FSMContext):
 async def user_profile_handler(message: Message, state: FSMContext):
     user = await Controller.get_user(message.from_user.id)
     user_name = f'{user.full_name} (t.me/{user.username})'
-    await bot.send_message(message.chat.id, await get_string_with_args('user_profile_message',
-                                                                       user_name,
-                                                                       user.max_level))
+    await bot.send_message(message.chat.id,
+                           await get_string_with_args('user_profile_message', user_name, user.max_level),
+                           disable_web_page_preview=True
+                           )
 
 
 @dp.message_handler(TextEquals('select_room_button'), state=UserMenu.IsUser)
@@ -101,9 +102,6 @@ async def select_room_level_handler(callback: CallbackQuery, state: FSMContext):
         room_hex_id = room.hex_id
         rooms = await Controller.get_rooms_by_level(level)
 
-        # run_date = room.end_at
-        # scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id),
-        #                   timezone='Europe/Moscow')
     await callback.message.edit_text(
         await get_string_with_args('select_room_message', str(await get_level_cost(level))),
         reply_markup=await common_choose_room_inline_kb(rooms)
@@ -151,8 +149,7 @@ async def select_room_handler(callback: CallbackQuery, state: FSMContext):
                    await get_string_with_args('user_room_refer_welcome_message', user_name, next_room_id, next_level)
 
             run_date = await Controller.set_room_end_time(room_id, WAIT_ROOM_TIME)
-            # добавление таска на проверку начала игры через WAIT_ROOM_TIME
-            print('add WAIT_ROOM_TIME')
+
             scheduler.add_job(check_room_wait, "date", run_date=run_date,
                               args=(dp, bot, Controller, room_id, room_hex_id,
                                     next_room_id, refer_tg_id, next_level), timezone='Europe/Moscow')
@@ -172,7 +169,6 @@ async def select_room_handler(callback: CallbackQuery, state: FSMContext):
         room_users = await Controller.get_room_users(room_id)
         if (len(room_users) == MAX_PLAYERS) and (not room.wait_refer):
             run_date = await Controller.set_room_end_time(room_id)
-            print('add ROOM_TIME')
             scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id,
                                                                            next_room_id, refer_tg_id, next_level),
                               timezone='Europe/Moscow')

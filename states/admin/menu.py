@@ -11,14 +11,3 @@ class ChangeStartMessage(StatesGroup):
     SetText = State()
     SetData = State()
     ConfirmChanges = State()
-
-
-class SendingMessage(StatesGroup):
-    SetText = State()
-    SetData = State()
-    ConfirmChanges = State()
-
-
-class AddRoom(StatesGroup):
-    RoomLevel = State()
-    ConfirmRoom = State()

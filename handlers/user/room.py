@@ -1,5 +1,3 @@
-import asyncio
-from datetime import datetime
 from typing import Optional
 
 from aiogram.dispatcher import FSMContext
@@ -37,29 +35,31 @@ async def room_left_time_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     room_id = data['room_id']
     room = await Controller.get_room(room_id)
-
+    left_time = await Controller.get_left_time(room_id)
+    left_hours = left_time.seconds // 3600
+    left_minutes = (left_time.seconds - left_hours * 3600) // 60
+    left_seconds = left_time.seconds - left_hours * 3600 - left_minutes * 60
+    left_time_text = await get_string_with_args('room_left_time_message',
+                                                left_hours,
+                                                left_minutes,
+                                                left_seconds
+                                                )
     if room.users_count < MAX_PLAYERS:
         await bot.send_message(
             message.chat.id,
-            await get_string_with_args('not_started_yet_message', await get_string('wait_max_players_message'))
+            await get_string_with_args('not_started_yet_message', await get_string('wait_max_players_message') + '\n'
+                                       + left_time_text)
         )
         return
     if room.wait_refer:
         await bot.send_message(
             message.chat.id,
-            await get_string_with_args('not_started_yet_message', await get_string('wait_refer_message'))
+            await get_string_with_args('not_started_yet_message', await get_string('wait_refer_message' + '\n'
+                                                                                   + left_time_text))
         )
         return
-    left_time = await Controller.get_left_time(room_id)
-    left_hours = left_time.seconds // 3600
-    left_minutes = (left_time.seconds - left_hours * 3600) // 60
-    left_seconds = left_time.seconds - left_hours * 3600 - left_minutes * 60
     await bot.send_message(message.chat.id,
-                           await get_string_with_args('room_left_time_message',
-                                                      left_hours,
-                                                      left_minutes,
-                                                      left_seconds
-                                                      ))
+                           left_time_text)
 
 
 @dp.callback_query_handler(send_refer_request_cb.filter(action='cancel'), state=RoomMenu.IsPlayer)
@@ -89,7 +89,8 @@ async def chose_send_refer_handler(callback: CallbackQuery, state: FSMContext):
     await bot.send_message(
         refer_id,
         await get_string_with_args('confirm_user_rq_message', level_cost, user_name),
-        reply_markup=await confirm_request_inline_kb(int(user_tg_id), int(from_room_id))
+        reply_markup=await confirm_request_inline_kb(int(user_tg_id), int(from_room_id)),
+        disable_web_page_preview=True
     )
 
 
@@ -159,17 +160,10 @@ async def accept_rq_handler(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     room_refers = await Controller.get_room_refers(room_id)
     if len(room_refers) == MAX_PLAYERS:
-        next_level_offer_text = await get_string_with_args('next_level_message', level)
+        text = await get_string_with_args('end_room_message', await get_string('all_players_are_refers_message'))
+        next_level_offer_text = text + '\n' + await get_string_with_args('next_level_message', level)
         await end_room_message(room_id, next_level_offer_text, await common_reject_accept_kb(),
                                state=RoomMenu.NextRoom.state, increase_level=True)
-        # if level < MAX_LEVEL:
-        #     next_level_offer_text = await get_string_with_args('next_level_message', level + 1)
-        #     await end_room_message(room_id, next_level_offer_text, await common_reject_accept_kb(),
-        #                            state=RoomMenu.NextRoom.state, increase_level=True)
-        # else:
-        #     text = await get_string_with_args('end_room_message', await get_string('all_players_are_refers_message'))
-        #     await end_room_message(room_id, text, await user_menu_kb(), state=UserMenu.IsUser.state,
-        #                            increase_level=True)
 
 
 @dp.callback_query_handler(confirm_request_cb.filter(action='accept_rq'), state='*')
@@ -189,24 +183,7 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
     room = await Controller.get_room(room_id)
     room_hex_id = room.hex_id
 
-    # rooms = await Controller.get_rooms_by_level(level)
-    # free_rooms = await Controller.get_free_rooms(level)
-    # if (not rooms) or (not free_rooms):
-    #     room_id = await Controller.add_room(level)
-    #     room = await Controller.get_room(room_id)
-    #     room_hex_id = room.hex_id
-    #     scheduler.add_job(close_room, "date", run_date=room.end_at, args=(dp, bot, Controller, room_id, room_hex_id),
-    #                       timezone='Europe/Moscow')
-    # else:
-    #     room = free_rooms[0]
-    #     room_id = room.id
-    #     room_hex_id = room.hex_id
     await state.reset_state()
-
-    # room_refers = await Controller.get_room_refers(room_id)
-    # room_refer = room_refers[0]
-    # next_room_id = room_refer.next_room_id
-    # refer_tg_id = room_refer.tg_id
 
     res, is_refer = await Controller.add_user_to_room(room_id, message.from_user.id)
     if res:
@@ -216,7 +193,6 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         else:
             next_level = level
         await state.update_data(room_id=room_id, room_hex_id=room_hex_id, level=level)
-        # if is_refer:
         refer_tg_id = message.from_user.id
         next_room_id = await Controller.add_refer_room(level=next_level, user_tg_id=message.from_user.id)
         await RoomMenu.IsRefer.set()
@@ -224,35 +200,20 @@ async def accept_next_level_handler(message: Message, state: FSMContext):
         text = await get_string_with_args('user_room_welcome_message', user_name) + '\n' + \
                await get_string_with_args('user_room_refer_welcome_message', user_name, next_room_id, next_level)
         run_date = await Controller.set_room_end_time(room_id, WAIT_ROOM_TIME)
-        # добавление таска на проверку начала игры через WAIT_ROOM_TIME
-        print('add WAIT_ROOM_TIME')
         scheduler.add_job(check_room_wait, "date", run_date=run_date,
                           args=(dp, bot, Controller, room_id, room_hex_id,
                                 next_room_id, refer_tg_id, level), timezone='Europe/Moscow')
-        # else:
-        #     await RoomMenu.IsPlayer.set()
-        #     reply_markup = await room_kb(is_refer)
-        #     text = await get_string_with_args('user_room_welcome_message', user_name)
 
         room = await Controller.get_room(room_id)
         await bot.send_message(
             message.chat.id,
             await get_string_with_args('room_welcome_message', room_id, level, room.users_count),
-            reply_markup=reply_markup
+            reply_markup=reply_markup, disable_web_page_preview=True
         )
         await send_room_message(room_id, text)
         room_users = await Controller.get_room_users(room_id)
         if len(room_users) == MAX_PLAYERS:
-            # run_date = await Controller.set_room_end_time(room_id)
-            # print('add ROOM_TIME')
-            # scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id),
-            #                   timezone='Europe/Moscow')
-            # await start_room_game(room_id)
-            #
-            # await refer_sleep(room_id, room_hex_id)
-
             run_date = await Controller.set_room_end_time(room_id)
-            print('add ROOM_TIME')
             scheduler.add_job(close_room, "date", run_date=run_date, args=(dp, bot, Controller, room_id, room_hex_id,
                                                                            next_room_id, refer_tg_id, level),
                               timezone='Europe/Moscow')
@@ -273,24 +234,6 @@ async def reject_next_level_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     level = data['level']
     await set_new_room_refer(next_room_id, tg_id, level)
-    # await Controller.remove_refer_from_room(next_room_id, tg_id)
-    # new_refer_tg_id = await Controller.set_random_room_refer(next_room_id)
-    # new_refer = await Controller.get_user(new_refer_tg_id)
-    # if new_refer_tg_id:
-    #     await bot.send_message(
-    #         new_refer_tg_id,
-    #         await get_string('room_refer_welcome_message'),
-    #         reply_markup=await room_kb(True)
-    #     )
-    #     data = await state.get_data()
-    #     level = data['level']
-    #     if level < MAX_LEVEL:
-    #         level += 1
-    #     user_name = f'{new_refer.full_name} (t.me/{new_refer.username})'
-    #     await send_room_message(next_room_id, await get_string_with_args('user_room_refer_welcome_message', user_name,
-    #                                                                      new_refer.next_room_id, level))
-    #     current_state = dp.current_state(chat=new_refer, user=new_refer)
-    #     await current_state.set_state(RoomMenu.IsRefer.state)
     await state.reset_state()
     await UserMenu.IsUser.set()
 

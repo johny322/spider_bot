@@ -1,18 +1,18 @@
 from aiogram.dispatcher import FSMContext
-from aiogram.types import Message, ContentType, ContentTypes, CallbackQuery, ParseMode
+from aiogram.types import Message, ContentTypes, CallbackQuery, ParseMode
 
-from admin_utils import get_start_message, edit_start_message
+from admin_utils import edit_start_message
 from admin_utils.start_message import edit_start_message_file
 from config.data import REFERS_PER_PAGE, cancel_cb
 from controller__init import Controller
 from keyboards import admin_menu_kb, user_menu_kb, common_skip_kb, common_reject_accept_kb, \
-    common_choose_level_inline_kb, common_reject_accept_inline_kb, paginate_markup, PaginateCallback, \
+    common_choose_level_inline_kb, paginate_markup, PaginateCallback, \
     common_choose_room_inline_kb, common_back_cancel_inline_kb, common_back_skip_kb, common_back_confirm_kb, \
     common_empty_kb, room_kb
 from languages import get_string, get_string_with_args
 from tg_bot import dp, bot
 from filters import CheckAdminPassword, TextEquals
-from states import AdminMenu, UserMenu, ChangeStartMessage, AddRoom, RoomMenu
+from states import AdminMenu, UserMenu, ChangeStartMessage, RoomMenu
 
 
 @dp.message_handler(CheckAdminPassword(), commands=['admin'], state="*")
@@ -184,10 +184,14 @@ async def admin_switch_state_to_user_handler(message: Message, state: FSMContext
     from_state = data['from_state']
     if from_state == UserMenu.IsUser.state:
         reply_markup = await user_menu_kb()
-    if from_state == RoomMenu.IsPlayer.state:
+    elif from_state == RoomMenu.IsPlayer.state:
         reply_markup = await room_kb(False)
-    if from_state == RoomMenu.IsRefer.state:
+    elif from_state == RoomMenu.IsRefer.state:
         reply_markup = await room_kb(True)
+    elif from_state == RoomMenu.NextRoom.state:
+        reply_markup = await common_reject_accept_kb()
+    else:
+        reply_markup = await admin_menu_kb()
     await bot.send_message(message.chat.id, message.text,
                            reply_markup=reply_markup)
     await state.set_state(from_state)
@@ -248,7 +252,8 @@ async def admin_get_room_handler(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         await get_string_with_args('room_info_message', room_id, level, '\n'.join(text)),
-        reply_markup=await common_back_cancel_inline_kb(True)
+        reply_markup=await common_back_cancel_inline_kb(True),
+        disable_web_page_preview=True
     )
 
 
