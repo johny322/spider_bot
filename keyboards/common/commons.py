@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.reply_keyboard import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
+from config.data import send_refer_request_cb, cancel_cb, confirm_request_cb
 from controller__init import Controller
 from database.models import Room
 from languages import get_string
@@ -100,9 +101,6 @@ async def common_empty_kb() -> ReplyKeyboardRemove:
     return ReplyKeyboardRemove()
 
 
-cancel_cb = CallbackData('cancel_cb', 'is_admin')
-
-
 async def common_choose_level_inline_kb(max_level: int, is_admin: bool = False) -> InlineKeyboardMarkup:
     cb_data = CallbackData('level_choose', 'level')
 
@@ -141,14 +139,8 @@ async def common_back_cancel_inline_kb(is_admin=False) -> InlineKeyboardMarkup:
 
 
 async def common_choose_room_inline_kb(rooms: List[Room], is_admin=False) -> InlineKeyboardMarkup:
-    # rooms = await Controller.get_rooms_by_level(int(level))
     keyboard = InlineKeyboardMarkup(resize_keyboard=True, row_width=2)
     for room in rooms:
-        # try:
-        #     users = room.users.split(',')
-        # except AttributeError:
-        #     users = []
-        # users_count = len(users)
         users_count = room.users_count
         keyboard.insert(
             InlineKeyboardButton(
@@ -182,15 +174,12 @@ async def common_reject_accept_inline_kb(callback_data=None, lang_code: str = 'r
     return keyboard
 
 
-send_refer_request_cb = CallbackData('send_rq', 'action', 'room_id', 'user_tg_id', 'refer_id')
-
-
 async def refers_request_inline_kb(room_id: int, hex_id: str, user_tg_id: int, money: int = 100,
                                    lang_code: str = 'ru') -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(resize_keyboard=True, row_width=2)
     room_refers = await Controller.get_room_refers(room_id)
     for room_refer in room_refers:
-        text = f'{room_refer.full_name} (@{room_refer.username})'
+        text = f'{room_refer.full_name} (t.me/{room_refer.username})'
         keyboard.insert(
             InlineKeyboardButton(
                 text,
@@ -210,9 +199,6 @@ async def refers_request_inline_kb(room_id: int, hex_id: str, user_tg_id: int, m
         )
     )
     return keyboard
-
-
-confirm_request_cb = CallbackData('confirm_rq', 'action', 'from_room_id', 'user_tg_id')
 
 
 async def confirm_request_inline_kb(user_tg_id: int, from_room_id: int, lang_code: str = 'ru'):

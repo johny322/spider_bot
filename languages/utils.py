@@ -1,6 +1,7 @@
 from typing import Union
 
-from .strings import strings, levels_cost
+from .strings import strings
+from constants import levels_cost
 
 
 async def get_string(string_code: str, lang_code: str = 'ru') -> Union[str, None]:

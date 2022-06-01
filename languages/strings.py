@@ -35,13 +35,17 @@ strings = {
                                'Цена указана в игровой валюте.',
         'room_welcome_message': 'Добро пожаловать за стол №{} ({}ур.) {}уч.',
         'room_refer_welcome_message': 'Вы стали реферов',
-        'not_started_yet_message': 'Игра еще не началась',
+        'not_started_yet_message': 'Игра еще не началась\n'
+                                   '{}',
+        'wait_refer_message': 'Ожидание подключения рефера',
+        'wait_max_players_message': 'Недостаточно игроков',
         'exit_room_message': 'Вы покинули стол',
         'room_left_time_message': 'До закрытия комнаты осталось: {}ч {}м {}с',
         'start_game_message': 'Игра началась',
         'user_exit_room_message': 'Игрок {} покинул стол',
         'user_room_welcome_message': 'Игрок {}, присоединился за стол',
-        'user_room_refer_welcome_message': 'Игрок {} стал рефером',
+        'user_room_refer_welcome_message': 'Игрок {} стал рефером\n'
+                                           'Его будущий стол №{} на {} ур.',
         'select_refer_message': 'Выберите рефера для отправки запроса на подтверждение перевода {} у.е.',
         'confirm_user_rq_message': 'Подтвердить перевод {} у.е. от игрока {}?',
         'good_rq_message': 'Запрос отправлен',
@@ -54,11 +58,11 @@ strings = {
         'start_player_message': 'Чтобы покинуть стол нажмите кнопку "Покинуть стол"',
         'next_level_message': 'Продолжить игру на следующем уровне({})? Стол будет выбран автоматически',
         'room_is_full_message': 'Стол заполнен',
-        'refers_info_message': '<b>Рефер</b>: {} (@{}) комата №{}, макс.ур. {}',
+        'refers_info_message': '<b>Рефер</b>: {} (t.me/{}) комата №{}, макс.ур. {}',
         'no_rooms_message': 'На этом уровне нет столов',
         'room_info_message': 'Стол №{}, {}ур.\n'
                              '{}',
-        'room_user_message': 'Игрок: {} (@{}), рефер: {}, макс.ур. {}',
+        'room_user_message': 'Игрок: {} (t.me/{}), рефер: {}, макс.ур. {}',
         'yes_message': 'Да',
         'no_message': 'Нет',
         'admin_refers_list_message': 'Список столов',
@@ -66,20 +70,8 @@ strings = {
         'user_is_refer_message': 'Игрок уже является рефером',
         'user_not_in_room_message': 'Игрок не находится за данным столом',
         'room_already_closed_message': 'Комната уже закрыта',
-        'already_exit_room_message': 'Вы уже покинули эту комнату',
-        'user_is_not_refer_message': 'Игрок не является рефером'
+        'already_exit_room_message': 'Вы уже покинули этот стол',
+        'user_is_not_refer_message': 'Игрок не является рефером',
+        'refer_entered_room_message': 'Рефер {} присоединился за стол'
     }
-}
-
-levels_cost = {
-    1: 100,
-    2: 200,
-    3: 300,
-    4: 400,
-    5: 500,
-    6: 1000,
-    7: 2000,
-    8: 3000,
-    9: 4000,
-    10: 5000
 }

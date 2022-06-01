@@ -3,11 +3,12 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from config import TOKEN
+from controller__init import Controller
 
 
 async def on_startup(_):
     scheduler.start()
-    pass
+    await Controller.clean_rooms()
 
 
 async def on_shutdown(_):

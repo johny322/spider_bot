@@ -3,19 +3,22 @@ from aiogram.types import Message, ContentType, ContentTypes, CallbackQuery, Par
 
 from admin_utils import get_start_message, edit_start_message
 from admin_utils.start_message import edit_start_message_file
+from config.data import REFERS_PER_PAGE, cancel_cb
 from controller__init import Controller
 from keyboards import admin_menu_kb, user_menu_kb, common_skip_kb, common_reject_accept_kb, \
-    common_choose_level_inline_kb, common_reject_accept_inline_kb, cancel_cb, paginate_markup, PaginateCallback, \
+    common_choose_level_inline_kb, common_reject_accept_inline_kb, paginate_markup, PaginateCallback, \
     common_choose_room_inline_kb, common_back_cancel_inline_kb, common_back_skip_kb, common_back_confirm_kb, \
-    common_empty_kb
+    common_empty_kb, room_kb
 from languages import get_string, get_string_with_args
 from tg_bot import dp, bot
 from filters import CheckAdminPassword, TextEquals
-from states import AdminMenu, UserMenu, ChangeStartMessage, AddRoom
+from states import AdminMenu, UserMenu, ChangeStartMessage, AddRoom, RoomMenu
 
 
 @dp.message_handler(CheckAdminPassword(), commands=['admin'], state="*")
 async def admin_get_status_handler(message: Message, state: FSMContext):
+    from_state = await state.get_state()
+    await state.update_data(from_state=from_state)
     await bot.send_message(message.chat.id, await get_string('admin_got_status_message'),
                            reply_markup=await admin_menu_kb())
     await AdminMenu.IsAdmin.set()
@@ -161,7 +164,10 @@ async def accept_changes_handler(message: Message, state: FSMContext):
                 print(e)
                 pass
         await bot.send_message(message.chat.id, 'Рассылка завершена')
+    data = await state.get_data()
+    from_state = data['from_state']
     await state.reset_data()
+    await state.update_data(from_state=from_state)
 
 
 @dp.message_handler(TextEquals('send_start_message_text'), state=ChangeStartMessage.SetText)
@@ -173,9 +179,18 @@ async def change_start_message_text_handler(message: Message, state: FSMContext)
 
 @dp.message_handler(TextEquals('admin_switch_state_to_user_button'), state=AdminMenu.IsAdmin)
 async def admin_switch_state_to_user_handler(message: Message, state: FSMContext):
+
+    data = await state.get_data()
+    from_state = data['from_state']
+    if from_state == UserMenu.IsUser.state:
+        reply_markup = await user_menu_kb()
+    if from_state == RoomMenu.IsPlayer.state:
+        reply_markup = await room_kb(False)
+    if from_state == RoomMenu.IsRefer.state:
+        reply_markup = await room_kb(True)
     await bot.send_message(message.chat.id, message.text,
-                           reply_markup=await user_menu_kb())
-    await UserMenu.IsUser.set()
+                           reply_markup=reply_markup)
+    await state.set_state(from_state)
 
 
 @dp.callback_query_handler(cancel_cb.filter(is_admin='True'), state='*')
@@ -246,7 +261,7 @@ async def get_refers_handler(message: Message, state: FSMContext):
     users = [
         (user.full_name, user.username, user.room_id, user.max_level) for user in refers
     ]
-    n = 10
+    n = REFERS_PER_PAGE
     users_split = [users[i:i + n] for i in range(0, len(users), n)]
     await state.set_state('users_list')
     count = len(users)
@@ -260,7 +275,8 @@ async def get_refers_handler(message: Message, state: FSMContext):
     await message.answer(
         text='\n'.join(text),
         reply_markup=await paginate_markup(max_pages=len(users_split), page=1, count=count),
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
     )
 
 
@@ -279,14 +295,15 @@ async def get_paginate(query: CallbackQuery, callback_data: PaginateCallback, st
     await query.message.edit_text(
         text='\n'.join(text),
         reply_markup=await paginate_markup(max_pages=len(users_split), page=next_page, count=count),
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
     )
 
 
 @dp.callback_query_handler(text='close_users', state='users_list')
 async def close_users_handler(query: CallbackQuery, state: FSMContext):
     await query.message.delete()
-    await state.finish()
+    # await state.finish()
     await AdminMenu.IsAdmin.set()
 
 
